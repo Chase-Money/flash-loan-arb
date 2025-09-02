@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    # Exposes anvil on localhost:8545 and forks from your RPC
+    command: >
+      anvil --host 0.0.0.0 \
+            --fork-url ${RPC_MAINNET} \
+            --fork-block-number ${FORK_BLOCK}
+    ports:
+      - "8545:8545"
+    env_file:
+      - .env
+
+  # bot:
+  #   # Uncomment and implement once the bot code and Dockerfile exist
+  #   build:
+  #     context: .
+  #     dockerfile: bot/Dockerfile
+  #   depends_on:
+  #     - anvil
+  #   env_file:
+  #     - .env
+
