@@ -1,0 +1,19 @@
+# file: bot/Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Use pnpm (project requires pnpm 9.x; 10 also works in dev)
+RUN npm i -g pnpm
+
+# Copy manifest first to leverage Docker layer caching
+COPY package.json pnpm-lock.yaml ./
+
+# Install deps inside container (Linux binaries for esbuild, etc.)
+RUN pnpm install --frozen-lockfile
+
+# Copy the rest of the source
+COPY . .
+
+# Default: run the bot's index.ts via tsx
+CMD ["pnpm","start"]

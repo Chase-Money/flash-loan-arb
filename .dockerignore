@@ -1,0 +1,10 @@
+# .dockerignore
+node_modules
+.git
+.gitignore
+.env
+Dockerfile*
+docker-compose*.yml
+.vscode
+dist
+coverage

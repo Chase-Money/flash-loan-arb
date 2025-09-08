@@ -36,3 +36,77 @@ for (const symbol of tokenSymbols) {
     console.error(`❌ Invalid address for ${symbol}:`, err.message);
   }
 }
+// file: src/index.ts
+import { config } from "dotenv";
+import { ethers } from "ethers";
+
+config();
+
+const rpc = process.env.RPC_MAINNET!;
+const USDC = process.env.USDC!;
+const DAI = process.env.DAI!;
+const WETH = process.env.WETH!;
+
+const erc20Abi = [
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+];
+
+function isHexAddress(a?: string) {
+  return typeof a === "string" && /^0x[0-9a-fA-F]{40}$/.test(a);
+}
+
+async function safeTokenInfo(
+  provider: ethers.Provider,
+  addr: string,
+  label: string
+) {
+  if (!isHexAddress(addr)) {
+    console.log(`❌ ${label} missing/invalid in .env: ${addr}`);
+    return;
+  }
+  const token = new ethers.Contract(addr, erc20Abi, provider);
+  try {
+    const [sym, dec] = await Promise.all([token.symbol(), token.decimals()]);
+    console.log(`✅ ${label}: ${addr} | ${sym} (decimals=${dec})`);
+  } catch (e: any) {
+    console.log(`⚠️  ${label}: ${addr} — could not read symbol/decimals (${e?.message ?? e})`);
+  }
+}
+
+async function main() {
+  console.log("🔌 RPC:", rpc);
+
+  const provider = new ethers.JsonRpcProvider(rpc);
+
+  // one-time sanity checks
+  await Promise.all([
+    safeTokenInfo(provider, USDC, "USDC"),
+    safeTokenInfo(provider, DAI, "DAI"),
+    safeTokenInfo(provider, WETH, "WETH"),
+  ]);
+
+  // keepalive loop: print block number + basic latency every 10s
+  const LOOP_MS = 10_000;
+
+  async function tick() {
+    const t0 = Date.now();
+    try {
+      const block = await provider.getBlockNumber();
+      const dt = Date.now() - t0;
+      console.log(
+        `⏱  block=${block} | rpc_latency=${dt}ms | ${new Date().toISOString()}`
+      );
+    } catch (e: any) {
+      console.error("❌ tick error:", e?.message ?? e);
+    }
+  }
+
+  await tick(); // immediate
+  setInterval(tick, LOOP_MS);
+}
+
+main().catch((e) => {
+  console.error("Fatal:", e);
+  process.exit(1);
+});
